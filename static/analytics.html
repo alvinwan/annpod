@@ -1,0 +1,277 @@
+<html>
+<head>
+               <meta name="viewport" content="width=device-width, initial-scale=1">
+
+	<!-- JS LIBRARIES -->
+
+    <script src="https://cdn.plot.ly/plotly-latest.min.js">								</script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.9/angular.min.js">	</script>
+    <script src="http://d3js.org/d3.v3.min.js" charset="utf-8">							</script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js">		</script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"> 	</script>
+	<script src="http://cdn.datatables.net/1.10.11/js/jquery.dataTables.min.js"> </script>
+	<script src="https://cdn.jsdelivr.net/xdate/0.8/xdate.min.js"> </script>
+	<script type="text/javascript" async src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-MML-AM_CHTML"> </script>
+	<!-- STYLESHEETS -->
+    <link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Lato:400,300' >
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" 
+    					   integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+    <link rel="stylesheet" href="http://cdn.datatables.net/1.10.11/css/jquery.dataTables.min.css">
+
+
+</head>
+
+
+<body ng-app="myApp" ng-controller="myCtrl">
+
+
+<!-- MAIN CONTENT -->
+
+<div style="width:70%">
+
+	<!-- TABLE -->
+
+	<div id="post-table" ng-show="checkActive(0)">
+	<table  id="posttable" class="table table-striped table-bordered"  cellspacing="0">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Title</th>
+                <th>Categories</th>
+                <th>Time</th>
+                <th> # Comments </th>
+            </tr>
+        </thead>
+        <tfoot>
+            <tr>
+                <th>ID</th>
+                <th>Title</th>
+                <th>Categories</th>
+                <th>Time</th>
+                <th> # Comments </th>
+            </tr>
+        </tfoot>
+    </table>
+    </div>
+
+	<!-- PLOT -->
+
+	<div ng-show="checkActive(1)" id="tester"></div>
+
+	<!-- SHOW ONE POST -->
+
+    <div ng-show="checkActive(2)" id="singlepost">
+    	<div id="postmain">
+	    	<h2> # {{postnum}} : {{post.title}} </h2>
+	    	 <ul class='list-inline'>
+	    	 <li> Posted at {{post.date}} </li>
+	    	 <li> <b> Tags: </b> </li>
+	    		<li ng-repeat="tag in post.tags"> {{tag}} </li>
+	    	</ul>
+	    	<h4> {{post.body}}</h4>
+    	</div>
+    	<div class="col-md-6">
+	    	<h3> {{postcomments.length}} Comments </h3>
+	    	<ul class="list-group">
+	    		<li class="list-group-item" ng-repeat="comment in post.comments"> {{comment.comment}} - {{diffDates(post.date,comment.date)}} after post </li>
+	    	</ul>
+    	</div>
+    	<div class="col-md-6">
+	    	<h3> Topics from RAKE Analysis </h3>
+	    	<ul class="list-group">
+	    		<li class="list-group-item" ng-repeat="kw in post.keywords"> {{kw}} </li>
+	    	</ul>
+    	</div>
+    </div>
+
+
+</div>
+
+    <!-- SIDEBAR -->
+    <aside class="col-md-2 info">
+  	<h1 class="title"> BidsX Piazza Analytics</h1>
+
+    <div class="info-blurb">
+    	<h3 class="subtitle">Actions</h2>
+    </div>
+
+    <ul>
+        <li ng-click="active=0"> Table </li>
+        <li ng-click="getPosts();active=1">  Histogram </li>
+        <li ng-click="active=2"> Specific </li>
+
+    </ul>
+
+    <form role="form" class="form">
+	    <h3> Filter by Date </h3>
+	    <div class="form-group" >
+	    	<label for="startdate">Starting Date</label>
+	    	<input ng-model="startdate" type="date" class="form-control" id="startdate">
+	 	 </div>
+	    <div class="form-group">
+	    	<label for="enddate">Ending Date</label>
+	    	<input ng-model="enddate" type="date" class="form-control" id="enddate">
+	  	</div>
+	  	<div class="form-group">        
+	      	<div class="col-sm-offset-2 col-sm-10">
+	        <button type="submit" ng-click="filter()" class="btn btn-default">Submit</button>
+	    	</div>
+	    </div>
+    </form>
+  </aside>
+</body>
+<script>
+	 var table;
+
+	 var app = angular.module('myApp', []);
+	 app.controller('myCtrl', function($scope,$http) {
+
+	 	// Used to toggle between the various screens
+	 	$scope.active = 0;
+	 	$scope.checkActive = function(x) {return x == $scope.active};
+
+	 	// Function used to return the difference between two times
+	 	// in a human-readable format (Used in Single Post)
+	 	$scope.diffDates = function(t1,t2){
+	 		minutes = Math.round(XDate(t1).diffMinutes(XDate(t2)));
+	 		if(minutes > 120){
+	 			return Math.round(minutes/60) + " hours";
+	 		}
+	 		return  minutes+ " minutes";
+	 	}
+
+	 	// Filters the histogram (and future graphs) to the specified time interval
+	 	// Uses the access point /select/post
+	 	$scope.filter = function(){
+	 		xStart = XDate($scope.startdate);
+	 		xEnd = XDate($scope.enddate);
+	 		get_request = {
+						    url: "/select/post", 
+						    method: "GET",
+						    params: {
+						    		start: xStart.toString("MMddyyyy"),
+						    		end: xEnd.toString("MMddyyyy")
+									}
+						 };
+	 		$http(get_request);
+	 		setTimeout( function(){ 
+	 			table.ajax.reload();
+  			}  , 1000 );
+	 	}
+
+	 	// Gets the posts and draws the histogram
+	 	// Uses the access point /get/post
+
+	 	$scope.getPosts = function(){
+	 		$http.get("/get/post")
+		    .then(function(response) {
+		    	console.log(response.data);
+		        $scope.postdata = response.data.data;
+		        $scope.x = $scope.postdata.map(function(elem){ return elem.time});
+
+		        TESTER = document.getElementById('tester');
+		        var hist = [{x: $scope.x, type:'histogram',nbinsx:100}];
+				console.log(hist);
+				Plotly.newPlot('tester', hist);
+		    });
+	 	};
+
+		table = $('#posttable').DataTable( {
+			        	"ajax": './get/post_table'
+			    	} );
+
+
+		// Gets a specific post, and fills out the single page display
+		// Uses the access point /get/post/<number>
+
+		$scope.getPost = function(number){
+			$http.get("/get/post/"+number).then(function(response){
+				console.log(response.data);
+				$scope.postnum = number;
+				$scope.post = response.data.data;
+				MathJax.Hub.Queue(["Typeset",MathJax.Hub]);
+				$scope.active = 2;
+			});
+		};
+
+		// Method for checking on call
+		$("#posttable tbody").on('click','tr',function(){
+			var data = table.row(this).data();
+			$scope.getPost(data[0]);
+		});
+	 });
+
+</script>	
+
+<style>
+h1 {
+  font-weight:300;
+}
+aside.info {
+  position:absolute;
+  top:0;
+  right:0;
+  height:100%;
+  background-color:#FFF;
+  z-index:20;
+  text-align:left;
+  float:right;
+  padding:0;
+}
+  .info-blurb {
+    padding:2em 3em;
+  }
+.subtitle {
+  width:100%;
+  color:#000;
+  font-weight:300;
+}
+.color-box {
+  width:1em;
+  height:1em;
+  display:inline-block;
+  float:none;
+  margin-top:0.5em;
+}
+.color-label {
+  text-align:center;
+}
+.text-label {
+  font-size:1em;
+  text-transform:uppercase;
+  line-height:2em;
+}
+.color-label,.text-label {
+  padding:0;
+}
+aside ul {
+  padding:0;
+  margin-bottom: 4em;
+}
+aside li, aside ul {
+  list-style:none;
+  float:left;
+  width:100%;
+}
+  aside li {
+    padding:1em 5em;
+    border-top:1px solid #eee;
+    border-bottom:1px solid #eee;
+    cursor:pointer;
+  }
+  aside li + li {
+    border-top:none;
+  }
+  .form-group {
+  	padding: 0em 4em;
+  }
+#postmain {
+	border: gray solid 1px;
+	padding: 2px 8px;
+}
+
+#singlepost {
+	padding: 2px 10px;
+}
+</style>
+</html>
