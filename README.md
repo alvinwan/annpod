@@ -46,5 +46,4 @@ The project structure is as following
 - utils.py  - Helpful utilities for parsing Piazza blocks
 - server.py - The main Flask Application
 - static/ 	- All HTML/CSS/JS files
-- rake.py   - Python3 Implementation of  Rapid Automatic Keyword Extraction - Ported from [RAKE](https://github.com/aneesha/RAKE)
 
