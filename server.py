@@ -1,7 +1,9 @@
 from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
-from models import Post, Comment, Tag
+from sqlalchemy import func,desc
+from models import *
 from utils import *
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///test.db'
@@ -49,8 +51,48 @@ def home():
     """
     Serves the main page
     """
-    f = open("static/analytics.html")
+    f = open("index.html")
     return f.read()
+
+
+
+#######################################
+#  
+#           GETTING METADATA
+#
+#########################################
+
+@app.route('/get/info')
+def info():
+    data = dict()
+    data['course'] = "Computer Science 70"
+    data['numviews'] = 400
+    data['numposts'] = 23
+    data['timetill'] = 10
+    return jsonify(data=data)
+
+
+@app.route('/get/popular_keywords')
+def popular_keywords():
+    keywords = db.session.query(Keyword,func.count(keyword_table.c.post).label('total')).join(keyword_table).group_by(Keyword).order_by('total DESC').limit(5).all()
+    keywords = [[k[0].name.title(), k[1]] for k in keywords]
+    return jsonify(data=keywords)
+
+@app.route('/get/popular_posts')
+def popular_posts():
+    popular = dict()
+    last_week = datetime.now() - timedelta(weeks=1)
+    most_viewed = db.session.query(Post).filter(Post.time > last_week).order_by(Post.views.desc()).first()
+    if most_viewed is not None: 
+        popular['views'] = post_to_dictionary(most_viewed)
+    most_commented_id = db.session.query(Comment.post_id,func.count(Comment.index).label('num')).filter(Comment.time > last_week).group_by(Comment.post_id).order_by(desc('num')).first()[0]
+    most_commented = db.session.query(Post).get(most_commented_id)
+    if most_commented is not None:
+        popular['comments'] = post_to_dictionary(most_commented)
+    most_recent = db.session.query(Post).order_by(Post.time.desc()).limit(5).all()
+    popular['recent'] = [post_to_dictionary(p) for p in most_recent]
+    return jsonify(data=popular)
+
 
 ########################################
 #

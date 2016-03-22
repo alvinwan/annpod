@@ -32,6 +32,8 @@ To run the visualization, do the following. We assume that you have already star
 
 # Screenshots
 
+![Dashboard](/screenshots/dashboard.png?raw=true "Post Analysis")
+
 ![Post Analysis](/screenshots/singlepost.png?raw=true "Post Analysis")
 
 ![Histogram](/screenshots/histogram.png?raw=true "Histogram")
