@@ -29,6 +29,7 @@ def post_to_dictionary(post):
     p['views'] = post.views
     p['favorites'] = post.favorites
     p['comments'] = [comment_to_dictionary(comm) for comm in post.comments]
+    p['index'] = post.index
     return p
 
 

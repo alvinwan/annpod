@@ -166,7 +166,7 @@
                   
                       <div class="row mt">
                       <!-- SERVER STATUS PANELS -->
-                      	<div class="col-md-4 col-sm-4 mb">
+                      	<div class="col-md-4 col-sm-4 mb" ng-click="loadPost(popular.views.index)">
                       		<div class="white-panel pn donut-chart">
                       			<div class="white-header">
 						  			<h5>MOST VIEWED POST</h5>
@@ -184,7 +184,7 @@
                       	</div><!-- /col-md-4-->
                       	
 
-                      	<div class="col-md-4 col-sm-4 mb">
+                      	<div class="col-md-4 col-sm-4 mb" ng-click="loadPost(popular.comments.index)">
                       		<div class="white-panel pn">
                       			<div class="white-header">
 						  			<h5>MOST COMMENTED POST</h5>
@@ -338,7 +338,7 @@
 						<h3>Most Recent Posts</h3>
                                         
                       <!-- First Action -->
-                      <div class="desc" ng-repeat="post in popular.recent">
+                      <div class="desc" ng-repeat="post in popular.recent" ng-click="loadPost(post.index)">
                       	<div class="thumb">
                       		<span class="badge bg-theme"><i class="fa fa-clock-o"></i></span>
                       	</div>
@@ -511,11 +511,15 @@
       });
     };
 
+    $scope.loadPost = function(number){
+      $scope.getPost(number);
+      $scope.active = 2;
+    }
+
     // Method for checking on call
     $("#posttable tbody").on('click','tr',function(){
       var data = table.row(this).data();
-      $scope.getPost(data[0]);
-      $scope.active = 2;
+      $scope.loadPost(data[0]);
 
     });
 
